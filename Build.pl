@@ -1,7 +1,7 @@
 use Module::Build;
 my $build = Module::Build->new(
 	module_name => 'Class::Tag',
-	dist_version => '0.02_01',
+	dist_version => '0.02_02',
 	license  => 'perl',
 	requires => {
 		'perl'           => '5.000',

@@ -6,7 +6,7 @@
 use strict;
 
 use Test::More;
-BEGIN {	plan tests => 60; } # allows to calcualte tests plan, but now SKIP is (better) used instead
+BEGIN {	plan tests => 105; } # allows to calcualte tests plan, but now SKIP is (better) used instead
 
 BEGIN { $^W = 0; } 
 
@@ -18,6 +18,12 @@ BEGIN { use_ok('Class::Tag') };
 }
 ok( Class::Tag->is('Foo')); 
 ok(!Class::Tag->is('Bar')); 
+
+my $foo = bless {}, 'Foo';
+my $bar = bless {}, 'Bar';
+
+ok( Class::Tag->is($foo)); 
+ok(!Class::Tag->is($bar)); 
 
 { 
 	package Foo;
@@ -31,24 +37,44 @@ ok(!Class::Tag->is('Foo'));
 	package Foo;
 	use Class::Tag qw(class pureperl); 
 }
-ok( Class::Tag->class(   'Foo')); # true
-ok( Class::Tag->pureperl('Foo')); # true
-ok(!Class::Tag->class(   'Bar')); # false
-ok(!Class::Tag->pureperl('Bar')); # false
+ok( Class::Tag->class(   'Foo')); 
+ok( Class::Tag->pureperl('Foo')); 
+ok(!Class::Tag->class(   'Bar')); 
+ok(!Class::Tag->pureperl('Bar')); 
+
+ok( Class::Tag->class(   $foo)); 
+ok( Class::Tag->pureperl($foo)); 
+ok(!Class::Tag->class(   $bar)); 
+ok(!Class::Tag->pureperl($bar)); 
 
 # Using "valued" tags:
 {
 	package Foo;
 	use Class::Tag { class => 'is awesome', author => 'metadoo' };  
+
+	# and now also tagging object of Foo class with same tags different values...
+	Class::Tag->class( $foo => 'is awesome too');
+	Class::Tag->author($foo =>    'metadoo too');
+
 }
-is(Class::Tag->class( 'Foo'), 'is awesome'); # true
-is(Class::Tag->author('Foo'), 'metadoo'); # true
+is(Class::Tag->class( 'Foo'), 'is awesome');     
+is(Class::Tag->author('Foo'),    'metadoo');     
+is(Class::Tag->class( $foo),  'is awesome too'); 
+is(Class::Tag->author($foo),     'metadoo too'); 
 
 # modifying tag values with accessors...
 is(Class::Tag->class( 'Foo',  'is pupe-perl'), 'is pupe-perl');
 is(Class::Tag->class( 'Foo'), 'is pupe-perl');
 is(Class::Tag->author('Foo',  'nobody'), 'nobody');
 is(Class::Tag->author('Foo'), 'nobody');
+is(Class::Tag->class( $foo),    'is awesome too');  # unaffected
+is(Class::Tag->author($foo),       'metadoo too');  # unaffected
+is(Class::Tag->class( $foo,   'is pupe-perl too'), 'is pupe-perl too');
+is(Class::Tag->class( $foo),  'is pupe-perl too');
+is(Class::Tag->author($foo,         'nobody too'), 'nobody too');
+is(Class::Tag->author($foo),        'nobody too');
+is(Class::Tag->class( 'Foo'), 'is pupe-perl');      # unaffected
+is(Class::Tag->author('Foo'),       'nobody');      # unaffected
 
 # Inheriting tags, using for example the default 'is' tag:
 {
@@ -71,7 +97,13 @@ ok(!Class::Tag::inherits('Bar')); # false (no tag inheritance)
 	use Awesome; 
 }
 ok( Awesome->is('Foo2')); # true
-ok(!Awesome->is('Bar2')); # false 
+ok(!Awesome->is('Bar2')); # false  
+
+my $foo = bless {}, 'Foo2';
+my $bar = bless {}, 'Bar2';
+
+ok( Awesome->is($foo)); # true
+ok(!Awesome->is($bar)); # false  
 
 { 
 	package Foo2;
@@ -79,6 +111,7 @@ ok(!Awesome->is('Bar2')); # false
 	untag Awesome; # same at run-time
 }
 ok(!Awesome->is('Foo2')); 
+ok(!Awesome->is($foo)); 
 
 {
 	package Buz; 
@@ -137,10 +170,15 @@ ok( not really Class::Tag 'Foo2' );
 	package Foo2;
 	use Awesome qw(class pureperl); 
 }
-ok( Awesome->class(   'Foo2')); # true
-ok( Awesome->pureperl('Foo2')); # true
-ok(!Awesome->class(   'Bar2')); # false
-ok(!Awesome->pureperl('Bar2')); # false
+ok( Awesome->class(   'Foo2')); 
+ok( Awesome->pureperl('Foo2')); 
+ok(!Awesome->class(   'Bar2')); 
+ok(!Awesome->pureperl('Bar2')); 
+
+ok( Awesome->class(   $foo)); 
+ok( Awesome->pureperl($foo)); 
+ok(!Awesome->class(   $bar)); 
+ok(!Awesome->pureperl($bar)); 
 
 # Using "valued" tags:
 {
@@ -149,15 +187,29 @@ ok(!Awesome->pureperl('Bar2')); # false
 
 	package Foo2;
 	use Awesome { class => 'is awesome', author => 'metadoo' }; 
+
+	# and now also tagging object of Foo class with same tags different values...
+	Awesome->class( $foo => 'is awesome too');
+	Awesome->author($foo =>    'metadoo too');
 }
-is(Awesome->class( 'Foo2'), 'is awesome'); 
-is(Awesome->author('Foo2'), 'metadoo'); 
+is(Awesome->class(    'Foo2'), 'is awesome'); 
+is(Awesome->author(   'Foo2'),    'metadoo');    
+is(Awesome->class( $foo),      'is awesome too'); 
+is(Awesome->author($foo),         'metadoo too'); 
 
 # modifying tag values with accessors...
-is(Awesome->class( 'Foo2',  'is pupe-perl'), 'is pupe-perl');
-is(Awesome->class( 'Foo2'), 'is pupe-perl');
-is(Awesome->author('Foo2',  'nobody'), 'nobody');
-is(Awesome->author('Foo2'), 'nobody');
+is(Awesome->class(    'Foo2',  'is pupe-perl'), 'is pupe-perl');
+is(Awesome->class(    'Foo2'), 'is pupe-perl');
+is(Awesome->author(   'Foo2',  'nobody'), 'nobody');
+is(Awesome->author(   'Foo2'), 'nobody');
+is(Awesome->class( $foo),        'is awesome too');  # unaffected
+is(Awesome->author($foo),           'metadoo too');  # unaffected
+is(Awesome->class( $foo,       'is pupe-perl too'), 'is pupe-perl too');
+is(Awesome->class( $foo),      'is pupe-perl too');
+is(Awesome->author($foo,             'nobody too'), 'nobody too');
+is(Awesome->author($foo),            'nobody too');
+is(Awesome->class(    'Foo2'), 'is pupe-perl');      # unaffected
+is(Awesome->author(   'Foo2'),       'nobody');      # unaffected
 
 # Inheriting tags, using for example the default 'is' tag:
 {
@@ -191,4 +243,26 @@ ok( Cool->is('Foo3'));
 ok(!Cool->is('Bar3')); 
 is( Cool->class( 'Foo3'), 'is cool'); 
 is( Cool->author('Foo3'), 'metadoo2'); 
+
+# evolving notion of tag...
+{ 
+	package Tag; # tagger class
+	use Awesome 'tagger_class'; 
+	use     Tag { evolved  => sub{ join ' ', @_ } }; 
+	use     Tag { AUTOLOAD => sub{ join ' ', @_ } }; 
+} 
+my @args = (3, 2, 5);
+is( Tag->evolved('Zoo', @args), join ' ', 'Tag', 'Zoo', @args); 
+is( Tag::evolved('Zoo', @args), join ' ', undef,  'Zoo', @args); 
+is( Tag->evolved('Zoo'       ), join ' ', 'Tag', 'Zoo'       ); 
+is( Tag::evolved('Zoo'       ), join ' ', undef,  'Zoo'       ); 
+is( Tag->evolved(),             join ' ', undef,  'Tag'      ); 
+is( Tag::evolved(),             join ' ', undef,              ); 
+
+is( Tag->beloved('Zoo', @args), join ' ', 'Tag', 'Zoo', @args); 
+is( Tag::beloved('Zoo', @args), join ' ', undef,  'Zoo', @args); 
+is( Tag->beloved('Zoo'       ), join ' ', 'Tag', 'Zoo'       ); 
+is( Tag::beloved('Zoo'       ), join ' ', undef,  'Zoo'       ); 
+is( Tag->beloved(),             join ' ', undef,  'Tag'      ); 
+is( Tag::beloved(),             join ' ', undef,              ); 
 
