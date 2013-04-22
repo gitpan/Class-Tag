@@ -3,7 +3,7 @@ package Class::Tag;
 #use 5.006; 
 
 use strict qw[vars subs];
-$Class::Tag::VERSION = '0.03';  
+$Class::Tag::VERSION = '0.04';  
 
 =head1 NAME
 
@@ -11,20 +11,24 @@ Class::Tag - programmatically label (mark) classes, methods, roles and modules w
 
 =head1 Warning
 
-Any specific interface that Class::Tag exposes may change (as it already did) untill version 1.0 is reached. 
+Any specific interface that Class::Tag exposes may change (as it already did) until version 1.0 is reached. 
 
 =head1 SYNOPSIS
 
-Directly using Class::Tag as tagger class: 
+The syntax of Class::Tag usage is an interaction of B<tag>, B<tagger> (class) and B<target> (class): tagger applies tag to target class. Names of tagger class and tag can be chosen almost freely (subject to usual restrictions) to read as self-explanatory English sentence, with question semantics (useful in conditionals) toggled by direct/indirect method call notation. The following synopsis illustrates.
 
-	package Foo;
-	use Class::Tag 'tagged'; 
+Directly using Class::Tag as tagger: 
+
+	package   Foo;
+	use Class::Tag 'tagged'; # tagging Foo class with 'tagged' tag
 	tag Class::Tag 'tagged'; # same, but at run-time
 
+	# query 'tagged' tag on the Foo and Bar...
 	require Foo; # required before next check
 	Class::Tag->tagged('Foo'); # true
 	Class::Tag->tagged('Bar'); # false
 
+	# remove 'tagged' tag from Foo...
 	#no   Class::Tag 'tagged'; # at compile-time, so will not work - instead...
 	untag Class::Tag 'tagged'; # at run-time
 	Class::Tag->tagged('Foo'); # false
@@ -36,14 +40,23 @@ If no tags are given, the 'is' tag is assumed:
 	use Class::Tag 'is'; # same
 	use Class::Tag ();   # no tagging
 
-New tagger class can be created by simply tagging package with special 'tagger_class' tag using Class::Tag or any other tagger class, and then declaring specific tags or any tag to be used with that new tagger class. Tags declaration is done by tagger class tagging itself with those specific tags or special 'AUTOLOAD' tag:
+New tagger class can be created by simply tagging package with special 'tagger_class' tag using either Class::Tag or any other tagger class, and then declaring specific tags to be used with that new tagger class. Declaration of specific tag is done by new tagger class applying this tag to itself. Declaring special 'AUTOLOAD' tag this way effectively declares that any tag can be used with new tagger class:
 
-	package Awesome;                # new tagger class
-	use  Class::Tag 'tagger_class'; # must be before following declarations
-	use     Awesome 'specific_tag'; # declare 'specific_tag' for use
-	use     Awesome 'AUTOLOAD';     # declares that any tag can be used
+	{
+		# this block can be used as "inline" tagger class definition
+		# or contents of this block can be loaded from Awesome.pm
+
+		package Awesome;                # new tagger class
+		use  Class::Tag 'tagger_class'; # must be before following declarations
+		use     Awesome 'specific_tag'; # declares 'specific_tag' for use
+		use     Awesome 'AUTOLOAD';     # declares that any tag can be used
+
+		1;
+	}
 
 	Class::Tag->tagger_class('Awesome'); # true
+
+Note that Awesome class is not required to be loaded from .pm file with use() or require(), it can be simply defined as above at any point in the code prior to using it as tagger class. Such tagger class definition is referred to as "inline" tagger class.
 
 The Class::Tag itself is somewhat similar to the following implicit declaration:
 
@@ -84,7 +97,7 @@ Using default 'is' tag:
 Using tags 'class' and 'pureperl': 
 
 	package Foo; 
-	# tagging class Foo with tags 'class' and 'pureperl' of Awesome tagger class...
+	# tagger class Foo with tags 'class' and 'pureperl' of Awesome tagger class...
 	use Awesome  'class';
 	use Awesome              'pureperl';
 	use Awesome  'class',    'pureperl';       # same
@@ -135,26 +148,30 @@ Inheriting tags, using for example the default 'is' tag:
 
 =head1 DESCRIPTION
 
-Sometimes it is necessary to programmatically tag modules and classes with some meta-tags (arbitrary labels or key/value pairs) to be able to assert that you deal with proper classes (module), methods and roles. Such need typically arises for plug-in modules, application component modules, complex class inheritance hierarchies, etc. 
+Sometimes it is necessary to programmatically tag modules and classes with some meta-data tags (arbitrary labels or key/value pairs) to be able to assert that you deal with proper classes (module), methods and roles. Such need typically arises for plug-in modules, application component modules, complex class inheritance hierarchies, etc. 
 
 Class::Tag allows programmatically label (mark) classes and modules with arbitrary inheritable tags (key/value pairs) without collision with methods/attributes/functions of the class/module and query those tags on arbitrary classes and modules.
 
-By design, Class::Tag is a generalized framework for meta information (tags) about inheritable behaviors. Inheritable behaviors that can have meta-data tags attached include methods, classes, roles, etc. Since tags are meta information about inheritable behaviors, tags themselves are inheritable (i.e. remain always "attached" to those behaviors). One example of the meta-tag is the class name itself with tag's (boolean) value returned by isa(). Another simple meta-tag example is method name with its value returned by can(). Yet another meta-tag example is the role name, with tag's value supposed to be returned by DOES(). But classes, methods and roles may also have other meta-tags apart from their names. In particular, Class::Tag can easily be used to implement method attributes, and even multi-layer method attributes, for example:
+By design, Class::Tag is a generalized framework for meta information (tags) about inheritable behaviors. Inheritable behaviors that can have meta-data tags attached include methods, classes, roles, etc. Since tags are meta information about inheritable behaviors, tags themselves are inheritable (i.e. remain always "attached" to those behaviors). 
 
-	package   Zoo;
-	use Meta2 foo => { author => 'metadoo', doc => 'is dead-simple' };
-	use Meta  foo => { is => 'ro', returns => 'boolean' };
-	sub       foo { 1 }
+One example of the meta-data tag is the class name itself with tag's (boolean) value returned by isa(). Another simple meta-data tag example is method name with its value returned by can(). Yet another meta-data tag example is the role name, with tag's value supposed to be returned by DOES(). But classes, methods and roles may also have other meta-data tags apart from their names. In particular, Class::Tag can easily be used to implement method attributes, and even "multi-layer" method attributes, for example:
 
-Such use opens possibilities for meta-programming and introspection. For example, method may access its own meta-data as follows:
+	package Zoo;
+
+	sub       foo    { 1 }
+	use Meta  foo => { is => 'ro', returns => 'boolean' };              # 1-st "meta-layer"
+	use Meta2 foo => { author => 'metadoo', doc => 'is dead-simple' };  # 2-nd "meta-layer"
+
+Such use opens possibilities for meta-programming and introspection. For example, method can access its own meta-data as follows:
 
 	sub foo { Meta->foo( ref($_[0])||$_[0] ) }
+	sub foo { Meta->foo(     $_[0]         ) } # nearly (but not exactly) same
 
-Technically, Class::Tag is the constructor of special variety of class/object attributes that are orthogonal to (isolated from) conventional attributes/methods of the class. Being the same and being orthogonal at the same time is what required to be good carrier of meta information about inheritable behavior. And use of tagger classes is a way to extend and partition class's namespace into meaningful orthogonal domains, as well as to extend the notion of the meta-tag in the domain-specific way.
+Technically, Class::Tag is the constructor for special variety of class/object attributes that are orthogonal to (isolated from) conventional attributes/methods of the class. Being the same and being orthogonal at the same time is what required to be good carrier of meta information about inheritable behavior. And use of tagger classes is a way to extend and partition class's namespace into meaningful orthogonal domains, as well as to extend the notion of the meta-data tag in the domain-specific way.
 
 =head1 Isolated (orthogonal) meta-domains
 
-Class::Tag itself serves as tagger class, and each tagger class is a "constructor" for other tagger classes, either loadable or inlined. Each tagger class brings separate meta-tags namespace that is orthogonal (isolated) to that of other tagger classes. The use of specific meta-tags namespace usually involves specific semantics. Together specific isolated meta-tags namespace and associated semantics are referred to as "meta-domain".
+Class::Tag itself serves as tagger class, and each tagger class is a "constructor" for other tagger classes, either loadable or inlined. Each tagger class brings separate meta-data tags namespace that is orthogonal to (isolated from) that of other tagger classes. The use of specific meta-data tags namespace usually involves specific semantics. Together specific isolated meta-data tags namespace and associated semantics are referred to as "meta-domain".
 
 The use() of tagger class looks as if it exports chosen named tags into packages, but in fact it doesn't - tagger class itself provides samename accessor methods for those tags. As a result, tag names can be arbitrary without risk of collision, so that together with name of tagger class they can be selected to read somewhat meaningful (see examples in L</"SYNOPSIS">) in the problem area domain that uses that specific tagger.
 
@@ -162,7 +179,7 @@ The use() of tagger class looks as if it exports chosen named tags into packages
 
 See L</"SYNOPSIS"> for description of new tagger class creation. Tagger class can be created "inline", without using separate .pm file for it.
 
-The value of 'tagger_class' tag is reserved for special use in the future, so it should not be used for anything to avoid collision with future versions.
+The value of 'tagger_class' tag is reserved for special use in the future, so it should not be used for anything to avoid incompatibility with future versions.
 
 =head2 Tagger class benefits
 
@@ -208,7 +225,7 @@ However, making existing (non-empty) class/module a tagger class requires care t
 
 =item Separate namespace and semantics domain
 
-Tagger class is a class intended for defining, managing and documenting specific meta-tags and domain-specific meta-tags namespace. In particular, tagger class is an ideal place where to document tags from that namespace.
+Tagger class is a class intended for defining, managing and documenting specific meta-data tags and domain-specific meta-data tags namespace. In particular, tagger class is an ideal place where to document tags from that namespace.
 
 =back
 
@@ -220,8 +237,8 @@ In addition, values of declaration tags can be used to modify behavior of tags a
 
 	package Awesome;                             # new tagger class
 	use  Class::Tag 'tagger_class';              # must be before following declarations
-	use     Awesome  specific_tag => \&accessor; # declare 'specific_tag' for use with \&accessor
-	use     Awesome  AUTOLOAD     => \&ACCESSOR; # declares that any tag can be used and uses \&accessor for all of them
+	use     Awesome  specific_tag => \&accessor; # use \&accessor for 'specific_tag' 
+	use     Awesome  AUTOLOAD     => \&ACCESSOR; # use \&ACCESSOR for any tag
 
 	Awesome->specific_tag( $class_or_obj, @args); # is equivalent to...
 	&accessor('Awesome',   $class_or_obj, @args); 
@@ -239,15 +256,21 @@ The Awesome class in above code may also be replaced with object of Awesome clas
 
 =head1 Traditional alternatives
 
-There are two natural alternative solutions: classes-as-tags and methods-as-tags. The classes-as-tags solution is using universal isa() method to see if class has specific parent and effectively using specific parent classes as tags. However, using parent classes just as tags is a limited solution since @ISA is used for different things and better be used for those things exclusively to avoid interferences. 
+(This section is safe to be skipped.)
 
-Using methods-as-tags approach is about defining and using specific methods as tags. It is way better then classes-as-tags, but but if specific method-tag need to be queried on unknown class/module, the following problems may arise: 
+There are three natural alternative solutions: classes-as-tags, roles-as-tags and methods-as-tags. The classes-as-tags solution uses universal isa() method to see if class has specific parent, it effectively uses specific parent classes as tags. However, using parent classes just as tags is a limited solution since @ISA is used for different things and better be used for those things exclusively to avoid interferences. 
+
+Using roles as tags do not involve modifying @ISA, but this approach relies on using single shared congested namespace, which means possibility of accidental collision, unless you specifically choose unnatural names (long, prefixed, capitalized, etc.) that are unlikely to collide or use unique names of existing modules as tags, which is an overkill in many cases.
+
+Moreover, classes-as-tags and roles-as-tags solutions do not allow using values for tags, mainly because isa() and DOES() cannot return arbitrary value. 
+
+Using methods-as-tags approach is about defining and using specific methods as tags. This approach is far better than classes-as-tags and roles-as-tags, but but if specific method-tag need to be queried on unknown class/module, the following problems may arise: 
 
 =over
 
 =item Name collision
 
-It may be that class/module have defined samename method/attribute by coincidence. Possibility of collision is considerable for short readable names (like 'is'), especially for undocumented tags that are used internally and in case of subclassing. To avoid collision method-tags usually have some unique prefix and may be in upper-case and/or starting with '_', etc. The typical solution is prefixing name of some module as unique identifier, and this is exactly what Class::Tag does in its own way.
+It may be that class/module have defined samename method/attribute by coincidence. Possibility of collision is considerable for short readable names (like 'is'), especially for undocumented tags that are used internally and in case of subclassing. To avoid collision method-tags usually have some unique prefix and may be in upper-case and/or starting with '_', etc. The typical solution is prefixing name of some module as unique identifier, and this is exactly what Class::Tag does in its own way:
 
 	Foo->Awesome_is;
 
@@ -270,7 +293,7 @@ Class::Tag solve this problem.
 
 =item Tagging
 
-Tagging using tag methods is essentially defining an attribute. For tagging classes only it is simple enough, but for tagging blesses-hash objects ends up in writing accessor, so it requires use of some attributes construction module, of which Class::Tag is essentially the one:
+Tagging is essentially defining an attribute. Applying tag to class is simple enough, but applying tag to blessed-hash objects ends up in writing accessor, so it requires use of some attributes construction module, of which Class::Tag is essentially the one:
 
 	package Foo;
 	bless $obj = {}, 'Foo';
@@ -291,7 +314,7 @@ except Class::Tag's default accessor implement copy-on-write tags on blessed-has
 
 =back
 
-Class::Tag solves these problems by moving tag creation and tag accessors to "tagger classes".
+Class::Tag solves these problems by moving tag constructors and accessors to tagger class, which is far more predictable and controlled environment.
 
 =head1 SUPPORT
 

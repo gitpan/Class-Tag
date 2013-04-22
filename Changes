@@ -8,3 +8,6 @@ Revision history for Class::Tag module:
 	
 0.03 22 April 2013
 	- First more or less decent version, with concept articulated more clearly. Many changes. Object::Hybrid now depends on it.
+	
+0.04 22 April 2013
+	- Documentation improvements.
