@@ -6,3 +6,4 @@ README
 t/Class-Tag.t
 lib/Class/Tag.pm
 META.yml
+META.json

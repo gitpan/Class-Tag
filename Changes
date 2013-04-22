@@ -5,3 +5,6 @@ Revision history for Class::Tag module:
 
 0.02_01 18 April 2013
 	- Complete revision and growing test suit. This is the first version released to CPAN as separate module.
+	
+0.03 22 April 2013
+	- First more or less decent version, with concept articulated more clearly. Many changes. Object::Hybrid now depends on it.
