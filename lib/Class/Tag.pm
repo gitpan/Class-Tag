@@ -3,7 +3,7 @@ package Class::Tag;
 #use 5.006; 
 
 use strict qw[vars subs];
-$Class::Tag::VERSION = '0.04';  
+$Class::Tag::VERSION = '0.05';  
 
 =head1 NAME
 
@@ -15,7 +15,7 @@ Any specific interface that Class::Tag exposes may change (as it already did) un
 
 =head1 SYNOPSIS
 
-The syntax of Class::Tag usage is an interaction of B<tag>, B<tagger> (class) and B<target> (class): tagger applies tag to target class. Names of tagger class and tag can be chosen almost freely (subject to usual restrictions) to read as self-explanatory English sentence, with question semantics (useful in conditionals) toggled by direct/indirect method call notation. The following synopsis illustrates.
+The syntax of Class::Tag usage is an interaction of B<tag>, B<tagger> (class) and B<target> (class): tagger applies tag to a target class. Names of tagger class (except Class::Tag itself) and tag can be chosen almost freely (subject to usual restrictions) to be read together as self-explanatory English sentence, with question semantics (useful in conditionals) toggled by direct/indirect method call notation. The following synopsis illustrates.
 
 Directly using Class::Tag as tagger: 
 
@@ -148,13 +148,13 @@ Inheriting tags, using for example the default 'is' tag:
 
 =head1 DESCRIPTION
 
-Sometimes it is necessary to programmatically tag modules and classes with some meta-data tags (arbitrary labels or key/value pairs) to be able to assert that you deal with proper classes (module), methods and roles. Such need typically arises for plug-in modules, application component modules, complex class inheritance hierarchies, etc. 
+Sometimes it is necessary to programmatically tag modules and classes with some meta-data tags (arbitrary labels or key/value pairs) to be able to assert that you deal with proper classes (modules), methods and roles. Such need typically arises for plug-in modules, application component modules, complex class inheritance hierarchies, etc. 
 
 Class::Tag allows programmatically label (mark) classes and modules with arbitrary inheritable tags (key/value pairs) without collision with methods/attributes/functions of the class/module and query those tags on arbitrary classes and modules.
 
 By design, Class::Tag is a generalized framework for meta information (tags) about inheritable behaviors. Inheritable behaviors that can have meta-data tags attached include methods, classes, roles, etc. Since tags are meta information about inheritable behaviors, tags themselves are inheritable (i.e. remain always "attached" to those behaviors). 
 
-One example of the meta-data tag is the class name itself with tag's (boolean) value returned by isa(). Another simple meta-data tag example is method name with its value returned by can(). Yet another meta-data tag example is the role name, with tag's value supposed to be returned by DOES(). But classes, methods and roles may also have other meta-data tags apart from their names. In particular, Class::Tag can easily be used to implement method attributes, and even "multi-layer" method attributes, for example:
+One example of the meta-data tag is a class name, with tag's (boolean) value returned by isa(). Another simple meta-data tag example is a method name, with its value returned by can(). Yet another meta-data tag example is a role name, with tag's value supposed to be returned by DOES(). But classes, methods and roles may also have other meta-data tags apart from their names. In particular, Class::Tag can easily be used to implement method attributes, and even "multi-layer" method attributes, for example:
 
 	package Zoo;
 
@@ -255,8 +255,6 @@ In addition, values of declaration tags can be used to modify behavior of tags a
 The Awesome class in above code may also be replaced with object of Awesome class. With custom accessors as above the entire tag syntax can be used for something different.
 
 =head1 Traditional alternatives
-
-(This section is safe to be skipped.)
 
 There are three natural alternative solutions: classes-as-tags, roles-as-tags and methods-as-tags. The classes-as-tags solution uses universal isa() method to see if class has specific parent, it effectively uses specific parent classes as tags. However, using parent classes just as tags is a limited solution since @ISA is used for different things and better be used for those things exclusively to avoid interferences. 
 
