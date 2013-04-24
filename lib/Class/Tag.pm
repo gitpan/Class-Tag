@@ -3,7 +3,7 @@ package Class::Tag;
 #use 5.006; 
 
 use strict qw[vars subs];
-$Class::Tag::VERSION = '0.06';  
+$Class::Tag::VERSION = '0.07';  
 
 =head1 NAME
 
@@ -313,6 +313,10 @@ except Class::Tag's default accessor implements copy-on-write tag values on bles
 =back
 
 Class::Tag solves these problems by moving tag constructors and accessors to tagger class, which is far more predictable and controlled environment.
+
+=head1 SEE ALSO
+
+The Class::DOES module provide the ability to use DOES() for tagging classes with role names - see discusssion in L</"Traditional alternatives">.
 
 =head1 SUPPORT
 
