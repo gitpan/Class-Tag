@@ -3,7 +3,7 @@ package Class::Tag;
 #use 5.006; 
 
 use strict qw[vars subs];
-$Class::Tag::VERSION = '0.07';  
+$Class::Tag::VERSION = '0.10';  
 
 =head1 NAME
 
@@ -13,24 +13,60 @@ Class::Tag - programmatically label (mark) classes, methods, roles and modules w
 
 Any specific interface that Class::Tag exposes may change (as it already did) until version 1.0 is reached. 
 
-=head1 SYNOPSIS
+=head1 SYNOPSIS 
+
+	{
+		package Foo;
+		use Class::Tag 'tagged'; # tagging Foo class with 'tagged' tag
+	}
+
+	# query 'tagged' tag on the Foo and Bar...
+	Class::Tag->tagged('Foo'); # true
+	Class::Tag->tagged('Bar'); # false
+
+	{
+		package Bar;
+		use Class::Tag { class => 'is cool', author => 'metadoo' }; 
+	}
+
+	Class::Tag->class( 'Bar') eq 'is cool'; # true
+	Class::Tag->author('Bar') eq 'metadoo'; # true
+
+See DESCRIPTION for more options.
+
+=head1 DESCRIPTION
+
+Sometimes it is necessary to programmatically tag modules and classes with some meta-data tags (arbitrary labels or key/value pairs) to be able to assert that you deal with proper classes (modules), methods and roles. Such need typically arises for plug-in modules, application component modules, complex class inheritance hierarchies, etc. 
+
+Class::Tag allows programmatically label (mark) classes and modules with arbitrary inheritable tags (key/value pairs) without collision with methods/attributes/functions of the class/module and query those tags on arbitrary classes and modules.
 
 The syntax of Class::Tag usage is an interaction of B<tag>, B<tagger> (class) and B<target> (class): tagger applies tag to a target class. Names of tagger class (except Class::Tag itself) and tag can be chosen almost freely (with usual restrictions) to be read together as (subject and predicate in a) self-explanatory English sentence, with question semantics (e.g. in conditionals) optionally toggled by direct/indirect method call notation. The following synopsis illustrates.
 
 Directly using Class::Tag as tagger: 
 
-	package   Foo;
-	use Class::Tag 'tagged'; # tagging Foo class with 'tagged' tag
-	tag Class::Tag 'tagged'; # same, but at run-time
+	{
+		package   Foo;
+		use Class::Tag 'tagged'; # tagging Foo class with 'tagged' tag
+		tag Class::Tag 'tagged'; # same, but at run-time
+	}
 
 	# query 'tagged' tag on the Foo and Bar...
-	require Foo; # required before next check
 	Class::Tag->tagged('Foo'); # true
 	Class::Tag->tagged('Bar'); # false
 
-	# remove 'tagged' tag from Foo...
-	#no   Class::Tag 'tagged'; # at compile-time, so will not work - instead...
-	untag Class::Tag 'tagged'; # at run-time
+Tag can be removed completely from within the scope of the same package Foo:
+
+	{
+		package   Foo;
+		# remove 'tagged' tag from Foo...
+		#no   Class::Tag 'tagged'; # at compile-time, so will not work - instead...
+		untag Class::Tag 'tagged'; # at run-time
+		Class::Tag->tagged('Foo'); # false
+	}
+
+However, since tagged() is now the read-write accessor for tag value, it may be easier to alter tag's value instead:
+
+	Class::Tag->tagged('Foo' => 0);
 	Class::Tag->tagged('Foo'); # false
 
 If no tags are given, the 'is' tag is assumed:
@@ -70,13 +106,12 @@ Any tagger class can be used as follows (in all following examples the original 
 
 Using default 'is' tag: 
 
-	package Foo;
-	use Awesome;
-	use Awesome  'is';       # same
-	use Awesome { is => 1 }; # same
-
-	require Foo; # required before next checks...
-	require Bar; 
+	{
+		package Foo;
+		use Awesome;
+		use Awesome  'is';       # same
+		use Awesome { is => 1 }; # same
+	}
 
 	is Awesome  'Foo';  # true
 	is Awesome  'Bar';  # false
@@ -96,48 +131,51 @@ Using default 'is' tag:
 
 Using tags 'class' and 'pureperl': 
 
-	package Foo; 
-	# tagger class Foo with tags 'class' and 'pureperl' of Awesome tagger class...
-	use Awesome  'class';
-	use Awesome              'pureperl';
-	use Awesome  'class',    'pureperl';       # same
-	use Awesome { class => 1, pureperl => 1 }; # same
-
-	require Foo; # required before next checks...
-	require Bar; 
+	{
+		package Foo; 
+		# tag class Foo with tags 'class' and 'pureperl' of Awesome tagger class...
+		use Awesome  'class';
+		use Awesome              'pureperl';
+		use Awesome  'class',    'pureperl';       # same
+		use Awesome { class => 1, pureperl => 1 }; # same
+	}
 
 	Awesome->class(   'Foo'); # true
 	Awesome->pureperl('Foo'); # true
 	Awesome->class(   'Bar'); # false
 	Awesome->pureperl('Bar'); # false
 
-Using key/value pairs as tags (tag values):
+Using key/value pairs as tags (tag values) and using read-write tag accessors:
 
-	package Foo;
-	use Awesome { class => 'is cool', author => 'metadoo' }; 
+	{
+		package Foo;
+		use Awesome { class => 'is cool', author => 'metadoo' }; 
+	}
 
-	Awesome->class( 'Foo') eq 'is cool'; # true
-	Awesome->author('Foo') eq 'metadoo'; # true
-
-Tag values can be modified with samename accessors. Object instances from the class inherit tags from the class, so that modifying tag value on instance modifies that of a class and vice versa, except blessed-hash objects get their own, instance-specific values when modifying tag value on instance - copy-on-write approach:
+	Awesome->author('Foo')                    eq 'metadoo'  ;     # true
+	Awesome->class( 'Foo')                    eq 'is cool'  ;     # true
+	Awesome->class( 'Foo'  => 'pupe-perl')    eq 'pupe-perl';     # true
+	Awesome->class( 'Foo')                    eq 'pupe-perl';     # true
 
 	$foo = bless {}, 'Foo';
 
 	Awesome->class( $foo) eq 'is cool'; # true
 	Awesome->author($foo) eq 'metadoo'; # true (inheriting)
 
-	Awesome->class( 'Foo', 'pupe-perl')     eq 'pupe-perl';     # true
-	Awesome->class( 'Foo')                  eq 'pupe-perl';     # true
-	Awesome->class( $foo)                   eq 'pupe-perl';     # true (inheriting)
-	Awesome->class( $foo,  'pupe-perl too') eq 'pupe-perl too'; # true (copy-on-write)
-	Awesome->class( $foo)                   eq 'pupe-perl too'; # true (copy-on-write)
-	Awesome->class( 'Foo')                  eq 'pupe-perl';     # true (unmodified)	
+	Awesome->class( $foo)                     eq 'pupe-perl';     # true (inheriting)
+	Awesome->class( $foo  => 'pupe-perl too') eq 'pupe-perl too'; # true (copy-on-write)
+	Awesome->class( $foo)                     eq 'pupe-perl too'; # true (copy-on-write)
+	Awesome->class( 'Foo')                    eq 'pupe-perl';     # true (unmodified)	
+
+In other words, tag values can be modified with samename accessors. Object instances from the class inherit tags from the class, so that modifying tag value on instance modifies that of a class and vice versa, except blessed-hash objects get their own, instance-specific values when modifying tag value on instance - copy-on-write approach.
 
 Inheriting tags, using for example the default 'is' tag:
 
-	package Foo;
-	use Awesome;
-	use Awesome 'is'; # same
+	{
+		package Foo;
+		use Awesome;
+		use Awesome 'is'; # same
+	}
 
 	@Bar::ISA = 'Foo';
 
@@ -145,12 +183,6 @@ Inheriting tags, using for example the default 'is' tag:
 	Awesome->is('Bar'); # true ('is' tag inherited)
 	Awesome::is('Foo'); # true
 	Awesome::is('Bar'); # false (no tag inheritance)
-
-=head1 DESCRIPTION
-
-Sometimes it is necessary to programmatically tag modules and classes with some meta-data tags (arbitrary labels or key/value pairs) to be able to assert that you deal with proper classes (modules), methods and roles. Such need typically arises for plug-in modules, application component modules, complex class inheritance hierarchies, etc. 
-
-Class::Tag allows programmatically label (mark) classes and modules with arbitrary inheritable tags (key/value pairs) without collision with methods/attributes/functions of the class/module and query those tags on arbitrary classes and modules.
 
 By design, Class::Tag is a generalized framework for managing meta information (tags) about inheritable behaviors. Inheritable behaviors that can have meta-data tags attached include methods, classes, roles, etc. Tags are by necessity inheritable, as they need to be inherited together with behaviors they are supposed to describe.
 
@@ -193,24 +225,26 @@ Name of the tagger class can be chosen to read naturally and meaningful, in eith
 
 =item Restricted tagspace
 
-The original Class::Tag tagger class allows to use any tag (except tag(), untag() and Perl's specials, like import(), can(), etc. are still reserved). In contrast, custom tagger classes may allow only specific tags to be used.
+The original Class::Tag tagger class allows to use any tag, except tag(), untag() and Perl's specials, like import(), can(), etc. are still reserved. In contrast, custom tagger classes may allow only specific tags to be used.
 
 =item Isolated (orthogonal) tagspace
 
 Each tagger class has its own orthogonal tags namespace (tagspace), so that same tags of different tagger classes do not collide:
 
-	package Awesome;
-	use  Class::Tag 'tagger_class';
-	use     Awesome 'AUTOLOAD';
+	{
+		package Awesome;
+		use  Class::Tag 'tagger_class';
+		use     Awesome 'AUTOLOAD';
 
-	package     Bad; 
-	use  Class::Tag 'tagger_class';
-	use         Bad 'AUTOLOAD';
+		package     Bad; 
+		use  Class::Tag 'tagger_class';
+		use         Bad 'AUTOLOAD';
 
-	package Foo;
-	use     Awesome 'really';
-	use     Awesome { orthogonal => 'awesome' }; 
-	use         Bad { orthogonal => 'bad' };
+		package Foo;
+		use     Awesome 'really';
+		use     Awesome { orthogonal => 'awesome' }; 
+		use         Bad { orthogonal => 'bad' };
+	}
 
 	really  Awesome 'Foo';                           # true
 	really      Bad 'Foo';                           # false
@@ -235,10 +269,12 @@ Attempt to use tag that has not been declared (assuming 'AUTOLOAD' declares any 
 
 In addition, values of declaration tags can be used to modify behavior of tags and, thus, redefine/evolve the whole notion of the tag. If tag is declared with subroutine reference value, that subroutine is called when tag is accessed:
 
-	package Awesome;                             # new tagger class
-	use  Class::Tag 'tagger_class';              # must be before following declarations
-	use     Awesome  specific_tag => \&accessor; # use \&accessor for 'specific_tag' 
-	use     Awesome  AUTOLOAD     => \&ACCESSOR; # use \&ACCESSOR for any tag
+	{
+		package Awesome;                             # new tagger class
+		use  Class::Tag 'tagger_class';              # must be before following declarations
+		use     Awesome  specific_tag => \&accessor; # use \&accessor for 'specific_tag' 
+		use     Awesome  AUTOLOAD     => \&ACCESSOR; # use \&ACCESSOR for any tag
+	}
 
 	Awesome->specific_tag( $class_or_obj, @args); # is equivalent to...
 	&accessor('Awesome',   $class_or_obj, @args); 
@@ -291,22 +327,26 @@ Class::Tag solve this problem.
 
 =item Tagging
 
-Tagging is essentially defining an attribute. Applying tag to class is simple enough, but applying tag to blessed-hash objects ends up in writing accessor, so it requires use of some attributes construction module, of which Class::Tag is essentially the one:
+Tagging is essentially defining an attribute. Applying read-only tag to class is simple enough, but applying writable tag or  applying tag to blessed-hash objects either ends up in writing accessor or requires use of some attributes construction module, of which Class::Tag is essentially the one:
 
-	package Foo;
+	{
+		package Foo;
+		my $writable = 'variable';
+		sub writable { @_ > 1 ?        $writable  = $_[1] :        $writable  }
+		sub instance { @_ > 1 ? $_[0]->{instance} = $_[1] : $_[0]->{instance} }
+	}
+
+	{
+		package Foo;
+		use Class::Tag writable => 'variable', instance => undef;
+	}
+
 	bless $obj = {}, 'Foo';
-
-	sub Foo::is_Awesome    { 'old_value' }; # compile-time tagging
-	*Foo::is_Awesome = sub { 'old_value' };
-	*Foo::is_Awesome = sub { 'new_value' };
-	# tagging object instance of the class...
-	sub  Foo::is_Awesome { @_ > 1 ? $_[0]->{is_Awesome} = $_[1] : $_[0]->{is_Awesome} }
-	$obj->is_Awesome('new_value');
-
-	use Awesome   is  => 'old_value'; # compile-time tagging
-	is  Awesome 'Foo' => 'old_value';
-	is  Awesome 'Foo' => 'new_value';
-	is  Awesome $obj  => 'new_value';
+	Class::Tag->writable('Foo') eq 'variable';
+	Class::Tag->writable('Foo'  => 'new value');
+	Class::Tag->writable('Foo') eq 'new value';
+	Class::Tag->instance($foo   => 'init value');
+	Class::Tag->instance('Foo') eq 'init value';
 
 except Class::Tag's default accessor implements copy-on-write tag values on blessed-hash object instances (and simple tag inheritance from class for blessed-non-hashes), rather than simplistic accessor in above alternative.
 
@@ -316,7 +356,7 @@ Class::Tag solves these problems by moving tag constructors and accessors to tag
 
 =head1 SEE ALSO
 
-The Class::DOES module provide the ability to use DOES() for tagging classes with role names - see discusssion in L</"Traditional alternatives">.
+The Class::DOES module provide the ability to use DOES() for tagging classes with role names - see discussion in L</"Traditional alternatives">.
 
 =head1 SUPPORT
 
@@ -348,6 +388,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 no warnings;  
 
 use Carp;
+use Scalar::Util qw(blessed);
 
 sub NAMESPACE () { 'aixfHgvpm7hgVziaO' }
 
@@ -445,9 +486,11 @@ sub new_import {
 							_tagged_accessor($tagger_class, $AUTOLOAD);
 						}
 
-						my $scalar_value =     defined $_[0] # called as method
+						my $scalar_value =   defined $_[0] # called as method
 						? &{  shift;                 $_[0]->can($tagged_accessor)       or return undef }
-						: &{*{join '::', ref($_[1])||$_[1],     $tagged_accessor}{CODE} or return undef }; 
+						: &{*{join '::', ref($_[1])||$_[1],     $tagged_accessor}{CODE} or return undef } 
+						if   $_[1] and (!ref $_[1] or blessed($_[1])) 
+						or   croak("Querying tag of untagable $_[1]");
 						return ref $scalar_value eq $tagger_class ? $$scalar_value : undef
 
 					}
@@ -458,7 +501,7 @@ sub new_import {
 					$tagger_class->can($tag) ) or
 					$tagger_class->isa( ref
 					$tagger_class->can('AUTOLOAD') ) 
-					or confess("Error: tagger class $tagger_class declares no '$tag' tag: ", $tagged_class);
+					or croak("Error: tagger class $tagger_class declares no '$tag' tag: ", $tagged_class);
 				}
 			}
 

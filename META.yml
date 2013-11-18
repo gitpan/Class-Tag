@@ -13,9 +13,9 @@ name: Class-Tag
 provides:
   Class::Tag:
     file: lib/Class/Tag.pm
-    version: 0.07
+    version: 0.10
 requires:
   perl: 5.000
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.08
+version: 0.10
